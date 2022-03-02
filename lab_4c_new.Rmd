@@ -1,5 +1,7 @@
 ---
-title: "lab_4c new"
+title: "Lab 4c. Deep Learning - iNaturalist"
+author: Felicia Cruz
+date: March 2, 2022
 output: html_document
 ---
 
@@ -89,7 +91,7 @@ test_2_dir <- file.path(base_dir, "inat/spp2/test")
 
 # Binary classifiction - neural net 
 
-## preprocessing images 
+## pre-processing images 
 ```{r}
 # All images will be rescaled by 1/255
 test_datagen <- image_data_generator(rescale = 1/255)
@@ -103,7 +105,7 @@ train_generator <- flow_images_from_directory(
   train_datagen,
   # All images will be resized to 150x150
   target_size = c(150, 150),
-  batch_size = 5,
+  batch_size = 30,
   # Since we use binary_crossentropy loss, we need binary labels
   class_mode = "binary") 
 
@@ -111,7 +113,7 @@ validation_generator <- flow_images_from_directory(
   validation_2_dir,
   validation_datagen,
   target_size = c(150, 150),
-  batch_size = 5,
+  batch_size = 10,
   class_mode = "binary")
 
 batch <- generator_next(train_generator)
@@ -137,17 +139,16 @@ model_1 %>% compile(
 ```{r}
 history <- model_1 %>% fit(
     train_generator,
-    steps_per_epoch = 5,
+    steps_per_epoch = 2,
     epochs = 30,
     validation_data = validation_generator,
-    validation_steps = 5)
+    validation_steps = 2)
 ```
 
 ```{r}
 plot(history)
 ```
 
-## talk about history results 
 ```{r}
 history
 ```
@@ -158,12 +159,14 @@ test_generator <- flow_images_from_directory(
   test_2_dir,
   test_datagen,
   target_size = c(150, 150),
-  batch_size = 20,
+  batch_size = 10,
   class_mode = "binary"
 )
 
-model_1 %>% evaluate(test_generator, steps = 50)
+model_1 %>% evaluate(test_generator, steps = 2) 
 ```
+
+**From the history plot above, we can see that loss decreases for the first few epics and levels off, and accuracy is generally increasing throughout the epics. On the test data, loss is 0.7 which is higher than the training and validation loss, and accuracy is 0.7 which is below the training accuracy but higher than the validation accuracy.**
 
 # Binary classifiction - convolutional neural net
 
@@ -197,10 +200,10 @@ model_2 %>% compile(
 ```{r}
 history_2 <- model_2 %>% fit(
     train_generator,
-    steps_per_epoch = 5,
+    steps_per_epoch = 2,
     epochs = 30,
     validation_data = validation_generator,
-    validation_steps = 5)
+    validation_steps = 2)
 ```
 
 ```{r}
@@ -218,20 +221,24 @@ test_generator_2 <- flow_images_from_directory(
   test_2_dir,
   test_datagen,
   target_size = c(150, 150),
-  batch_size = 20,
+  batch_size = 10,
   class_mode = "binary"
 )
 
-model_2 %>% evaluate(test_generator_2, steps = 50)
+model_2 %>% evaluate(test_generator_2, steps = 2)
 ```
-## Compare standard neural network and convolutional neural network results
 
+**From the history plot above, we can see that loss is generally decreasing and accuracy is increasing throughout the epics. On the test data, loss is 0.68 which is higher than both the test loss and the validation loss, and accuracy is 0.7 which is above both the training and validation accuracy.**
 
-------------------- 
+### Comparing standard neural network and convolutional neural network results
+
+**Comparing the results from these two models above, I would choose the basic neural network because this model resulted in greater accuracy for both the training data and the validation data compared to the convolutional neural net.**
+
+-----------------------------------
 
 # Multi-class classifiction - neural net
 
-## pre processing images 
+## pre-processing images 
 ```{r}
 # pre process the images from the 10 species using categorical class 
 
@@ -247,7 +254,7 @@ train_generator_10 <- flow_images_from_directory(
   train_datagen_10,
   # All images will be resized to 150x150
   target_size = c(150, 150),
-  batch_size = 5,
+  batch_size = 30,
   # change label to categorical 
   class_mode = "categorical") 
 
@@ -255,7 +262,7 @@ validation_generator_10 <- flow_images_from_directory(
   validation_10_dir,
   validation_datagen_10,
   target_size = c(150, 150),
-  batch_size = 5,
+  batch_size = 10,
   class_mode = "categorical")
 
 batch <- generator_next(train_generator_10)
@@ -266,9 +273,9 @@ str(batch)
 ```{r}
 model_3 <- keras_model_sequential() %>% 
   layer_dense(units = 16, activation = "relu", input_shape = c(150, 150, 3)) %>%
-  layer_dense(units = 16, activation = "relu") %>% 
   layer_flatten() %>% 
-  layer_dense(units =  1, activation = "softmax")
+  layer_dense(units = 64, activation = "relu") %>% 
+  layer_dense(units = 10, activation = "softmax")
 
 # compile
 model_3 %>% compile(
@@ -283,10 +290,10 @@ model_3 %>% compile(
 ```{r}
 history_3 <- model_3 %>% fit(
   train_generator_10,
-  steps_per_epoch = 5,
+  steps_per_epoch = 1,
   epochs = 30,
   validation_data = validation_generator_10,
-  validation_steps = 5)
+  validation_steps = 1)
 ```
 
 
@@ -306,12 +313,14 @@ test_generator_3 <- flow_images_from_directory(
   test_10_dir,
   test_datagen_10,
   target_size = c(150, 150),
-  batch_size = 20,
+  batch_size = 10,
   class_mode = "categorical"
 )
 
-model_3 %>% evaluate(test_generator_3, steps = 50)
+model_3 %>% evaluate(test_generator_3, steps = 10)
 ```
+
+**From the history plot above, we can see that loss is generally decreasing and accuracy is increasing throughout the epics. On the training data, loss is 5.3 which is lower than both the validation and the test loss, and accuracy is 0.2 which is equal to the validation accuracy and higher than the test accuracy.**
 
 # multi-class classifiction - convolutional neural net 
 
@@ -333,7 +342,7 @@ model_4 <- keras_model_sequential() %>%
   layer_flatten() %>% 
   layer_dropout(rate = 0.5) %>% 
   layer_dense(units = 512, activation = "relu") %>% 
-  layer_dense(units = 1, activation = "sigmoid")  
+  layer_dense(units = 10, activation = "softmax")  
   
 model_4 %>% compile(
   loss = "categorical_crossentropy",
@@ -368,9 +377,14 @@ test_generator_4 <- flow_images_from_directory(
   test_10_dir,
   test_datagen_10,
   target_size = c(150, 150),
-  batch_size = 20,
+  batch_size = 10,
   class_mode = "categorical"
 )
 
-model_4 %>% evaluate(test_generator_4, steps = 50)
+model_4 %>% evaluate(test_generator_4, steps = 10)
 ```
+**From the history plot above, we can see that loss is generally decreasing and accuracy is increasing throughout the epics. On the training data, loss is 1.5 which is lower than the test loss and the validation loss, and accuracy is 0.45 which is above both the training and validation accuracy.**
+
+### Comparing standard neural network and convolutional neural network results
+
+**Comparing the results from these two models above, I would choose the convolutional neural network because this model resulted in greater accuracy for both the training data and the validation data compared to the convolutional neural net.**
